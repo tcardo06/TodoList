@@ -2,17 +2,19 @@
 
 use Symfony\Component\HttpFoundation\Request;
 
-/** @var \Composer\Autoload\ClassLoader $loader */
-$loader = require __DIR__.'/../app/autoload.php';
-include_once __DIR__.'/../var/bootstrap.php.cache';
+// Pour l'instant en prod on masque les warnings / notices / deprecated
+error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE & ~E_USER_DEPRECATED);
+ini_set('display_errors', 0);
+
+require __DIR__.'/../vendor/autoload.php';
+require __DIR__.'/../app/AppKernel.php';
 
 $kernel = new AppKernel('prod', false);
-$kernel->loadClassCache();
-//$kernel = new AppCache($kernel);
 
-// When using the HttpCache, you need to call the method in your front controller instead of relying on the configuration parameter
-//Request::enableHttpMethodParameterOverride();
-$request = Request::createFromGlobals();
+// Utile pour les formulaires avec _method (PUT/DELETE simulés)
+Request::enableHttpMethodParameterOverride();
+
+$request  = Request::createFromGlobals();
 $response = $kernel->handle($request);
 $response->send();
 $kernel->terminate($request, $response);
