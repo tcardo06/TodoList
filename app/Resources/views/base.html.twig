@@ -37,19 +37,24 @@
 
         <!-- Page Content -->
         <div class="container">
-            <div class="row">
-                <a href="{{ path('user_create') }}" class="btn btn-primary">Créer un utilisateur</a>
+            <div class="row" style="margin-top: 70px;">
+                <div class="col-md-6">
+                    <a href="{{ path('user_create') }}" class="btn btn-primary">Créer un utilisateur</a>
+                </div>
 
-                {% if app.user %}
-                <a href="{{ path('logout') }}" class="pull-right btn btn-danger">Se déconnecter</a>
-                {% endif %}
-
-                {% if not app.user and 'login' != app.request.attributes.get('_route') %}
-                <a href="{{ path('login') }}" class="btn btn-success">Se connecter</a>
-                {% endif %}
+                <div class="col-md-6 text-right">
+                    {% if app.user %}
+                        <span class="navbar-text" style="margin-right: 10px;">
+                            Connecté en tant que <strong>{{ app.user.username }}</strong>
+                        </span>
+                        <a href="{{ path('logout') }}" class="btn btn-danger">Se déconnecter</a>
+                    {% elseif 'login' != app.request.attributes.get('_route') %}
+                        <a href="{{ path('login') }}" class="btn btn-success">Se connecter</a>
+                    {% endif %}
+                </div>
             </div>
 
-            <div class="row">
+            <div class="row" style="margin-top: 20px;">
                 <div class="col-md-12">
                     {% for flash_message in app.session.flashBag.get('success') %}
                         <div class="alert alert-success" role="alert">
