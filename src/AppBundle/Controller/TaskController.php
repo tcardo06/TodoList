@@ -55,8 +55,18 @@ class TaskController extends Controller
      */
     public function editAction(Task $task, Request $request)
     {
-        $form = $this->createForm(TaskType::class, $task);
+        $user = $this->getUser();
+        $taskOwner = $task->getUser();
 
+        if (!$user) {
+            throw new AccessDeniedException('Vous devez être connecté pour modifier une tâche.');
+        }
+
+        if ($taskOwner === null || $taskOwner->getId() !== $user->getId()) {
+            throw new AccessDeniedException('Vous ne pouvez modifier que vos propres tâches.');
+        }
+
+        $form = $this->createForm(TaskType::class, $task);
         $form->handleRequest($request);
 
         if ($form->isValid()) {
@@ -101,21 +111,19 @@ class TaskController extends Controller
         }
 
         $taskOwner = $task->getUser();
-        $isAnonymousTask = $taskOwner && $taskOwner->getUsername() === 'anonyme';
 
-        // tâche "anonyme" -> uniquement les admins peuvent la supprimer
+        // Détection correcte d'une tâche anonyme
+        $isAnonymousTask = ($taskOwner && $taskOwner->getUsername() === 'anonyme');
+
         if ($isAnonymousTask) {
+            // Tâche anonyme → seuls les admins peuvent supprimer
             if (!$this->isGranted('ROLE_ADMIN')) {
-                throw new AccessDeniedException(
-                    'Seuls les administrateurs peuvent supprimer les tâches de l’utilisateur anonyme.'
-                );
+                throw new AccessDeniedException('Seuls les administrateurs peuvent supprimer les tâches anonymes.');
             }
         } else {
-            // tâche normale -> seul le créateur peut la supprimer
+            // Tâche normale → seul l’auteur peut supprimer
             if (!$taskOwner || $taskOwner->getId() !== $user->getId()) {
-                throw new AccessDeniedException(
-                    'Vous ne pouvez supprimer que vos propres tâches.'
-                );
+                throw new AccessDeniedException('Vous ne pouvez supprimer que vos propres tâches.');
             }
         }
 

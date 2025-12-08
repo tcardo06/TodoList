@@ -25,6 +25,9 @@
                 <directory>src/*Bundle/Resources</directory>
                 <directory>src/*/*Bundle/Resources</directory>
                 <directory>src/*/Bundle/*Bundle/Resources</directory>
+
+                <!-- On ne compte pas les fixtures dans la couverture -->
+                <directory>src/AppBundle/DataFixtures</directory>
             </exclude>
         </whitelist>
     </filter>
