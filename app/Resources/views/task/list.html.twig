@@ -38,14 +38,23 @@
                     <div>
                         <form action="{{ path('task_toggle', {'id' : task.id }) }}">
                             <button class="btn btn-success btn-sm pull-right">
-                                {% if not task.isDone %}Marquer comme faite{% else %}Marquer non terminée{% endif %}
+                                {% if not task.isDone %}
+                                    Marquer comme faite
+                                {% else %}
+                                    Marquer non terminée
+                                {% endif %}
                             </button>
                         </form>
-                            {% if app.user and (
-                                (task.user and task.user.id == app.user.id) or
-                                (task.user is null and is_granted('ROLE_ADMIN'))
-                            ) %}
-                                <form action="{{ path('task_delete', {'id' : task.id }) }}" method="post" style="display:inline;">
+
+                        {# Bouton SUPPRIMER : règles d’auth #}
+                        {% if app.user %}
+                            {% set isOwner = (task.user and task.user.id == app.user.id) %}
+                            {% set isAnonymousTask = (task.user and task.user.username == 'anonyme') %}
+
+                            {% if (isOwner and not isAnonymousTask) or (isAnonymousTask and is_granted('ROLE_ADMIN')) %}
+                                <form action="{{ path('task_delete', {'id' : task.id }) }}"
+                                      method="post"
+                                      style="display:inline;">
                                     <button
                                         class="btn btn-danger btn-sm pull-right"
                                         onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?');"
@@ -54,6 +63,7 @@
                                     </button>
                                 </form>
                             {% endif %}
+                        {% endif %}
                     </div>
                 </div>
             </div>

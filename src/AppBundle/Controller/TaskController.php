@@ -7,6 +7,7 @@ use AppBundle\Form\TaskType;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 class TaskController extends Controller
 {
@@ -33,7 +34,6 @@ class TaskController extends Controller
         if ($form->isValid()) {
             $user = $this->getUser();
 
-            // Si quelqu'un est connecté, on rattache la tâche à cet utilisateur
             if ($user !== null) {
                 $task->setUser($user);
             }
@@ -47,9 +47,7 @@ class TaskController extends Controller
             return $this->redirectToRoute('task_list');
         }
 
-        return $this->render('task/create.html.twig', [
-            'form' => $form->createView()
-        ]);
+        return $this->render('task/create.html.twig', ['form' => $form->createView()]);
     }
 
     /**
@@ -62,7 +60,6 @@ class TaskController extends Controller
         $form->handleRequest($request);
 
         if ($form->isValid()) {
-            // L'auteur n'est pas modifié : on ne touche pas à $task->getUser()
             $this->getDoctrine()->getManager()->flush();
 
             $this->addFlash('success', 'La tâche a bien été modifiée.');
@@ -100,19 +97,24 @@ class TaskController extends Controller
         $user = $this->getUser();
 
         if (!$user) {
-            throw $this->createAccessDeniedException('Vous devez être connecté pour supprimer une tâche.');
+            throw new AccessDeniedException('Vous devez être authentifié pour supprimer une tâche.');
         }
 
-        // Si la tâche a un auteur → seul cet auteur ou un admin peut la supprimer
-        if (null !== $task->getUser()) {
-            if ($task->getUser() !== $user && !$this->isGranted('ROLE_ADMIN')) {
-                throw $this->createAccessDeniedException('Vous ne pouvez supprimer que vos propres tâches.');
+        $taskOwner = $task->getUser();
+        $isAnonymousTask = $taskOwner && $taskOwner->getUsername() === 'anonyme';
+
+        // tâche "anonyme" -> uniquement les admins peuvent la supprimer
+        if ($isAnonymousTask) {
+            if (!$this->isGranted('ROLE_ADMIN')) {
+                throw new AccessDeniedException(
+                    'Seuls les administrateurs peuvent supprimer les tâches de l’utilisateur anonyme.'
+                );
             }
         } else {
-            // Tâche anonyme → seulement un admin
-            if (!$this->isGranted('ROLE_ADMIN')) {
-                throw $this->createAccessDeniedException(
-                    'Seul un administrateur peut supprimer les tâches anonymes.'
+            // tâche normale -> seul le créateur peut la supprimer
+            if (!$taskOwner || $taskOwner->getId() !== $user->getId()) {
+                throw new AccessDeniedException(
+                    'Vous ne pouvez supprimer que vos propres tâches.'
                 );
             }
         }
