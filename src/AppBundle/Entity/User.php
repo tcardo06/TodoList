@@ -39,6 +39,19 @@ class User implements UserInterface
      */
     private $email;
 
+    /**
+     * Rôles de l'utilisateur (array)
+     *
+     * @ORM\Column(type="json_array")
+     */
+    private $roles = [];
+
+    public function __construct()
+    {
+        // Par défaut, tout nouvel utilisateur est un simple utilisateur
+        $this->roles = ['ROLE_USER'];
+    }
+
     public function getId()
     {
         return $this->id;
@@ -81,7 +94,27 @@ class User implements UserInterface
 
     public function getRoles()
     {
-        return array('ROLE_USER');
+        $roles = $this->roles ?: [];
+
+        if (!in_array('ROLE_USER', $roles, true)) {
+            $roles[] = 'ROLE_USER';
+        }
+
+        return $roles;
+    }
+
+    public function setRoles(array $roles)
+    {
+        $this->roles = array_values(array_unique($roles));
+    }
+
+    public function addRole($role)
+    {
+        $role = strtoupper($role);
+
+        if (!in_array($role, $this->roles, true)) {
+            $this->roles[] = $role;
+        }
     }
 
     public function eraseCredentials()
