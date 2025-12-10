@@ -76,7 +76,7 @@ Chaque fonctionnalité ou correction doit être réalisée via une branche dédi
 ```bash
 git checkout dev
 git pull
-git checkout -b feature/nom-de-ta-feature
+git checkout -b feature/nom-de-la-feature
 ```
 
 Exemples :
