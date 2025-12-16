@@ -37,19 +37,42 @@
 
         <!-- Page Content -->
         <div class="container">
-            <div class="row">
-                <a href="{{ path('user_create') }}" class="btn btn-primary">Créer un utilisateur</a>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-md-12">
 
-                {% if app.user %}
-                <a href="{{ path('logout') }}" class="pull-right btn btn-danger">Se déconnecter</a>
-                {% endif %}
+                    {# Si quelqu’un est connecté #}
+                    {% if app.user %}
+                        <span class="pull-left" style="margin-right: 15px; margin-top: 5px;">
+                            Connecté en tant que <strong>{{ app.user.username }}</strong>
+                        </span>
 
-                {% if not app.user and 'login' != app.request.attributes.get('_route') %}
-                <a href="{{ path('login') }}" class="btn btn-success">Se connecter</a>
-                {% endif %}
+                        {# Boutons visibles UNIQUEMENT pour les admins #}
+                        {% if is_granted('ROLE_ADMIN') %}
+                            <a href="{{ path('user_create') }}" class="btn btn-primary" style="margin-right: 5px;">
+                                Créer un utilisateur
+                            </a>
+                            <a href="{{ path('user_list') }}" class="btn btn-default">
+                                Gérer les utilisateurs
+                            </a>
+                        {% endif %}
+
+                        <a href="{{ path('logout') }}" class="btn btn-danger pull-right">
+                            Se déconnecter
+                        </a>
+
+                    {# Personne n’est connecté : bouton login #}
+                    {% else %}
+                        {% if 'login' != app.request.attributes.get('_route') %}
+                            <a href="{{ path('login') }}" class="btn btn-success pull-right">
+                                Se connecter
+                            </a>
+                        {% endif %}
+                    {% endif %}
+
+                </div>
             </div>
 
-            <div class="row">
+            <div class="row" style="margin-top: 20px;">
                 <div class="col-md-12">
                     {% for flash_message in app.session.flashBag.get('success') %}
                         <div class="alert alert-success" role="alert">
@@ -64,7 +87,9 @@
                     {% endfor %}
 
                     {% block header_title %}{% endblock %}
-                    {% block header_img %}<img class="slide-image" src="{{ asset('img/todolist_homepage.jpg') }}" alt="todo list">{% endblock %}
+                    {% block header_img %}
+                        <img class="slide-image" src="{{ asset('img/todolist_homepage.jpg') }}" alt="todo list">
+                    {% endblock %}
                 </div>
             </div>
 

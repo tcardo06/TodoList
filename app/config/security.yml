@@ -24,6 +24,12 @@ security:
             logout: ~
 
     access_control:
+        # Page de login accessible à tout le monde
         - { path: ^/login, roles: IS_AUTHENTICATED_ANONYMOUSLY }
-        - { path: ^/users, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+
+        # Gestion des utilisateurs : réservé aux admins
+        - { path: ^/users, roles: ROLE_ADMIN }
+
+        # Le reste du site : il faut être connecté (ROLE_USER au minimum)
         - { path: ^/, roles: ROLE_USER }
+

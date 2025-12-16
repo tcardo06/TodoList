@@ -7,6 +7,7 @@ use AppBundle\Form\TaskType;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 class TaskController extends Controller
 {
@@ -15,7 +16,9 @@ class TaskController extends Controller
      */
     public function listAction()
     {
-        return $this->render('task/list.html.twig', ['tasks' => $this->getDoctrine()->getRepository('AppBundle:Task')->findAll()]);
+        return $this->render('task/list.html.twig', [
+            'tasks' => $this->getDoctrine()->getRepository('AppBundle:Task')->findAll()
+        ]);
     }
 
     /**
@@ -29,12 +32,17 @@ class TaskController extends Controller
         $form->handleRequest($request);
 
         if ($form->isValid()) {
-            $em = $this->getDoctrine()->getManager();
+            $user = $this->getUser();
 
+            if ($user !== null) {
+                $task->setUser($user);
+            }
+
+            $em = $this->getDoctrine()->getManager();
             $em->persist($task);
             $em->flush();
 
-            $this->addFlash('success', 'La tâche a été bien été ajoutée.');
+            $this->addFlash('success', 'La tâche a bien été ajoutée.');
 
             return $this->redirectToRoute('task_list');
         }
@@ -47,8 +55,18 @@ class TaskController extends Controller
      */
     public function editAction(Task $task, Request $request)
     {
-        $form = $this->createForm(TaskType::class, $task);
+        $user = $this->getUser();
+        $taskOwner = $task->getUser();
 
+        if (!$user) {
+            throw new AccessDeniedException('Vous devez être connecté pour modifier une tâche.');
+        }
+
+        if ($taskOwner === null || $taskOwner->getId() !== $user->getId()) {
+            throw new AccessDeniedException('Vous ne pouvez modifier que vos propres tâches.');
+        }
+
+        $form = $this->createForm(TaskType::class, $task);
         $form->handleRequest($request);
 
         if ($form->isValid()) {
@@ -73,7 +91,10 @@ class TaskController extends Controller
         $task->toggle(!$task->isDone());
         $this->getDoctrine()->getManager()->flush();
 
-        $this->addFlash('success', sprintf('La tâche %s a bien été marquée comme faite.', $task->getTitle()));
+        $this->addFlash('success', sprintf(
+            'La tâche %s a bien été marquée comme faite.',
+            $task->getTitle()
+        ));
 
         return $this->redirectToRoute('task_list');
     }
@@ -83,6 +104,29 @@ class TaskController extends Controller
      */
     public function deleteTaskAction(Task $task)
     {
+        $user = $this->getUser();
+
+        if (!$user) {
+            throw new AccessDeniedException('Vous devez être authentifié pour supprimer une tâche.');
+        }
+
+        $taskOwner = $task->getUser();
+
+        // Détection correcte d'une tâche anonyme
+        $isAnonymousTask = ($taskOwner && $taskOwner->getUsername() === 'anonyme');
+
+        if ($isAnonymousTask) {
+            // Tâche anonyme → seuls les admins peuvent supprimer
+            if (!$this->isGranted('ROLE_ADMIN')) {
+                throw new AccessDeniedException('Seuls les administrateurs peuvent supprimer les tâches anonymes.');
+            }
+        } else {
+            // Tâche normale → seul l’auteur peut supprimer
+            if (!$taskOwner || $taskOwner->getId() !== $user->getId()) {
+                throw new AccessDeniedException('Vous ne pouvez supprimer que vos propres tâches.');
+            }
+        }
+
         $em = $this->getDoctrine()->getManager();
         $em->remove($task);
         $em->flush();
